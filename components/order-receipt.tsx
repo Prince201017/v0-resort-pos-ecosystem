@@ -23,12 +23,21 @@ export function OrderReceipt({ tokenNumber, items, onBack }: OrderReceiptProps) 
     const timeString = now.toLocaleTimeString("en-IN")
     setCurrentTime(`${dateString} ${timeString}`)
 
+    // Robust calculation for QR code
+    const calculatedSubtotal = parseFloat(
+      items.reduce((sum, item) => {
+        const itemPrice = typeof item.price === 'string' ? parseFloat(item.price) : item.price
+        const itemQty = typeof item.quantity === 'string' ? parseInt(item.quantity, 10) : item.quantity
+        return sum + (itemPrice * itemQty)
+      }, 0).toFixed(2)
+    )
+
     // Generate QR code with order data
     const orderData = {
       tokenNumber,
       items,
-      subtotal: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-      total: items.reduce((sum, item) => sum + item.price * item.quantity, 0) + SERVICE_CHARGE,
+      subtotal: calculatedSubtotal,
+      total: parseFloat((calculatedSubtotal + SERVICE_CHARGE).toFixed(2)),
       timestamp: `${dateString} ${timeString}`,
     }
 
@@ -37,8 +46,15 @@ export function OrderReceipt({ tokenNumber, items, onBack }: OrderReceiptProps) 
     setQrCodeUrl(qrApiUrl)
   }, [tokenNumber, items])
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const total = subtotal + SERVICE_CHARGE
+  // Robust subtotal and total calculation
+  const subtotal = parseFloat(
+    items.reduce((sum, item) => {
+      const itemPrice = typeof item.price === 'string' ? parseFloat(item.price) : item.price
+      const itemQty = typeof item.quantity === 'string' ? parseInt(item.quantity, 10) : item.quantity
+      return sum + (itemPrice * itemQty)
+    }, 0).toFixed(2)
+  )
+  const total = parseFloat((subtotal + SERVICE_CHARGE).toFixed(2))
 
   // Format receipt text for Bluetooth printing
   const formatReceiptText = (): string => {
@@ -65,10 +81,10 @@ export function OrderReceipt({ tokenNumber, items, onBack }: OrderReceiptProps) 
     })
 
     lines.push("================================")
-    lines.push(`Subtotal                  ₹${subtotal}`)
-    lines.push(`Service Charge            ₹${SERVICE_CHARGE}`)
+    lines.push(`Subtotal                  ₹${subtotal.toFixed(2)}`)
+    lines.push(`Service Charge            ₹${SERVICE_CHARGE.toFixed(2)}`)
     lines.push("--------------------------------")
-    lines.push(`TOTAL                     ₹${total}`)
+    lines.push(`TOTAL                     ₹${total.toFixed(2)}`)
     lines.push("================================")
     lines.push("")
     lines.push(currentTime)

@@ -1,51 +1,16 @@
 "use client"
 
-import Link from "next/link"
-import { Users } from "lucide-react"
-
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import type { MenuItem, OrderItem } from "@/lib/menu-data"
 import { MenuGrid } from "@/components/menu-grid"
 import { OrderSummary } from "@/components/order-summary"
 import { OrderReceipt } from "@/components/order-receipt"
-import { getWebSocketClient } from "@/lib/websocket-client"
 
 export default function Home() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [tokenNumber, setTokenNumber] = useState<number | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
-  const [wsConnected, setWsConnected] = useState(false)
-
-  // Initialize WebSocket
-  useEffect(() => {
-    const wsClient = getWebSocketClient()
-
-    const unsubConnected = wsClient.on("connected", () => {
-      console.log("[v0] Connected to order system")
-      setWsConnected(true)
-    })
-
-    const unsubDisconnected = wsClient.on("disconnected", () => {
-      console.log("[v0] Disconnected from order system")
-      setWsConnected(false)
-    })
-
-    // Connect with fallback for demo
-    if (typeof window !== "undefined") {
-      try {
-        wsClient.connect()
-      } catch {
-        console.log("[v0] WebSocket demo mode - orders saved locally")
-        setWsConnected(true) // Demo mode
-      }
-    }
-
-    return () => {
-      unsubConnected()
-      unsubDisconnected()
-    }
-  }, [])
 
   const handleAddItem = useCallback((item: MenuItem) => {
     setOrderItems((prev) => {
@@ -78,7 +43,7 @@ export default function Home() {
     })
   }, [])
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (orderItems.length === 0) return
 
     setIsCheckingOut(true)
@@ -88,34 +53,15 @@ export default function Home() {
       const token = Math.floor(Math.random() * 100) + 1
       setTokenNumber(token)
 
-      // Prepare order message
-      const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-      const serviceCharge = 10
-      const total = subtotal + serviceCharge
-
-      const orderMessage = {
-        type: "order_submitted",
-        tokenNumber: token,
-        items: orderItems.map((item) => ({
-          title: item.title,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        subtotal,
-        serviceCharge,
-        total,
-        timestamp: new Date().toISOString(),
-      }
-
-      // Send via WebSocket if connected
-      const wsClient = getWebSocketClient()
-      if (wsClient.isConnected()) {
-        wsClient.send(orderMessage)
-        console.log("[v0] Order sent via WebSocket:", orderMessage)
-      } else {
-        // Demo mode: just log locally
-        console.log("[v0] Order (demo mode):", orderMessage)
-      }
+      // Calculate totals with proper math
+      const subtotal = orderItems.reduce((sum, item) => {
+        const itemTotal = parseFloat((item.price * item.quantity).toFixed(2))
+        console.log(`[v0] Item: ${item.title}, Price: ${item.price}, Qty: ${item.quantity}, Total: ${itemTotal}`)
+        return sum + itemTotal
+      }, 0)
+      
+      const finalSubtotal = parseFloat(subtotal.toFixed(2))
+      console.log(`[v0] Final Subtotal: ${finalSubtotal}`)
 
       // Show receipt
       setShowReceipt(true)
@@ -149,12 +95,7 @@ export default function Home() {
         </>
       )}
 
-      {/* Connection indicator */}
-      {!wsConnected && (
-        <div className="fixed bottom-4 right-4 px-3 py-2 bg-muted text-muted-foreground text-xs rounded-lg">
-          Demo Mode (Local Orders)
-        </div>
-      )}
+
     </main>
   )
 }

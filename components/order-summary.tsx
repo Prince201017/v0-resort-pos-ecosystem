@@ -16,8 +16,17 @@ interface OrderSummaryProps {
 export function OrderSummary({ items, onRemoveItem, onUpdateQuantity, onCheckout, isLoading }: OrderSummaryProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const total = subtotal + SERVICE_CHARGE
+  // Robust subtotal calculation with proper decimal handling
+  const subtotal = parseFloat(
+    items.reduce((sum, item) => {
+      const itemPrice = typeof item.price === 'string' ? parseFloat(item.price) : item.price
+      const itemQty = typeof item.quantity === 'string' ? parseInt(item.quantity, 10) : item.quantity
+      const itemTotal = itemPrice * itemQty
+      return sum + itemTotal
+    }, 0).toFixed(2)
+  )
+  
+  const total = parseFloat((subtotal + SERVICE_CHARGE).toFixed(2))
 
   return (
     <div className="border-t border-border bg-card">
@@ -29,7 +38,7 @@ export function OrderSummary({ items, onRemoveItem, onUpdateQuantity, onCheckout
         <div className="flex-1 text-left">
           <p className="text-sm text-muted-foreground">Your order</p>
           <p className="text-sm font-semibold text-foreground">
-            {items.length} item{items.length !== 1 ? "s" : ""} • Subtotal: ₹{subtotal}
+            {items.length} item{items.length !== 1 ? "s" : ""} • Subtotal: ₹{subtotal.toFixed(2)}
           </p>
         </div>
         {isDrawerOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -77,15 +86,15 @@ export function OrderSummary({ items, onRemoveItem, onUpdateQuantity, onCheckout
               <div className="pt-3 space-y-1 border-t border-border">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">₹{subtotal}</span>
+                  <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Service Charge</span>
-                  <span className="font-medium">₹{SERVICE_CHARGE}</span>
+                  <span className="font-medium">₹{SERVICE_CHARGE.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-base font-semibold pt-2">
+                <div className="flex justify-between text-base font-semibold pt-2 border-t border-border">
                   <span>Total</span>
-                  <span className="text-primary">₹{total}</span>
+                  <span className="text-primary">₹{total.toFixed(2)}</span>
                 </div>
               </div>
 
