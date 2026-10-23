@@ -1,0 +1,7 @@
+{
+  "name": "White Lotus - Resort POS",
+  "description": "Premium resort ordering system",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
